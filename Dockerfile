@@ -1,125 +1,54 @@
-# vLLM v0.12.0 + PyTorch (source) + sm_70 (Volta / CMP 100-210)
-# Explicit support: xFormers, SDPA, bitsandbytes, AutoRound
+# Prebuilt PyTorch with Volta (sm_70) support
+# No PyTorch source builds
 
-FROM nvidia/cuda:12.8.0-devel-ubuntu24.04
+FROM pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime
 
+# ---------- env ----------
 ENV DEBIAN_FRONTEND=noninteractive \
     TORCH_CUDA_ARCH_LIST="7.0" \
-    CUDAARCHS="70" \
-    MAX_JOBS=4 \
-    USE_CUDA=1 \
-    USE_CUDNN=1 \
-    BUILD_TEST=0 \
-    PYTORCH_BUILD_VERSION=2.9.0+sm70 \
-    PYTORCH_BUILD_NUMBER=1 \
+    CUDA_VISIBLE_DEVICES=0 \
     HF_HOME=/root/.cache/huggingface \
-    FORCE_CUDA=1 \
-    CUDA_HOME=/usr/local/cuda \
     NVIDIA_DISABLE_REQUIRE=1
 
-# ---- system deps ----
-RUN apt update && apt install -y \
+# ---------- system deps ----------
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
-    python3 \
-    python3-pip \
-    python3-dev \
-    python3-setuptools \
-    python3-wheel \
     build-essential \
     cmake \
     ninja-build \
     curl \
     ca-certificates \
-    libopenblas-dev \
-    libomp-dev \
     patchelf \
+    libopenblas-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python3 -m pip install --break-system-packages --no-cache-dir \
+# ---------- sanity check: sm_70 present ----------
+# (safe at runtime; this image already has CUDA)
+RUN python3 -c "import torch; print(torch.__version__); print(torch.cuda.get_arch_list())"
+
+# ---------- Python deps ----------
+RUN pip install --no-cache-dir \
     numpy \
-    wheel \
-    "setuptools>=70" \
     pyyaml \
+    packaging \
     typing_extensions \
-    packaging
+    aiohttp
 
-# ---- build PyTorch from source (sm_70 enabled, SDPA included) ----
-WORKDIR /opt
-RUN git clone --branch v2.9.0 --depth 1 --recursive --shallow-submodules https://github.com/pytorch/pytorch.git && \
-    cd pytorch && \
-    git submodule sync && \
-    git submodule update --init --recursive --depth 1
+# ---------- quant / inference deps ----------
+RUN pip install --no-cache-dir \
+    bitsandbytes \
+    auto-round
 
-ENV USE_MKLDNN=0 \
-    USE_FBGEMM=0 \
-    USE_NNPACK=0 \
-    USE_XNNPACK=0 \
-    BUILD_CAFFE2=0 \
-    USE_QNNPACK=0 \
-    USE_ROCM=0 \
-    USE_FLASH_ATTENTION=0 \
-    USE_MEM_EFF_ATTENTION=1
+# ---------- install vLLM (prebuilt wheel) ----------
+# vLLM wheels are CUDA-version aware; this works with cu128
+RUN pip install --no-cache-dir vllm==0.14.1
 
-WORKDIR /opt/pytorch
-RUN pip install --break-system-packages --no-cache-dir -e . -v --no-build-isolation && \
-    rm -rf /opt/pytorch/.git /opt/pytorch/build /root/.cache/pip && \
-    find /opt/pytorch -type d -name __pycache__ -exec rm -rf {} + || true
+# ---------- runtime tuning ----------
+ENV VLLM_ATTENTION_BACKEND=xformers \
+    VLLM_TARGET_DEVICE=cuda \
+    PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
+    CUDA_DEVICE_MAX_CONNECTIONS=1
 
-# ---- xFormers (build from source for sm_70) ----
-# ---- xFormers (build from source for sm_70) ----
-WORKDIR /opt
-RUN git clone --branch v0.0.28 --depth 1 --recursive https://github.com/facebookresearch/xformers.git && \
-    cd xformers && \
-    git submodule sync && \
-    git submodule update --init --recursive --depth 1
-
-
-WORKDIR /opt/xformers
-ENV XFORMERS_BUILD_TYPE=Release \
-    XFORMERS_ENABLE_FLASH_ATTENTION=0 \
-    XFORMERS_ENABLE_MEM_EFF_ATTENTION=1 \
-    XFORMERS_FORCE_DISABLE_TRITON=0
-
-RUN pip install --break-system-packages --no-cache-dir -e . -v --no-build-isolation && \
-    rm -rf /opt/xformers/.git /root/.cache/pip
-
-# ---- bitsandbytes (Volta-safe source build) ----
-WORKDIR /opt
-RUN git clone --depth 1 https://github.com/bitsandbytes-foundation/bitsandbytes.git
-
-WORKDIR /opt/bitsandbytes
-ENV BNB_CUDA_VERSION=128 \
-    BNB_FORCE_BUILD_FROM_SOURCE=1 \
-    CUDA_VERSION=128
-
-RUN python3 setup.py install && \
-    rm -rf /opt/bitsandbytes/.git /root/.cache/pip
-
-# ---- AutoRound (pure Python, no CUDA kernels) ----
-RUN pip install --break-system-packages --no-cache-dir auto-round
-
-# ---- build vLLM v0.12.0 ----
-WORKDIR /opt
-RUN git clone --branch v0.12.0 --depth 1 --recursive --shallow-submodules https://github.com/vllm-project/vllm.git && \
-    cd vllm && \
-    git submodule sync && \
-    git submodule update --init --recursive --depth 1
-
-WORKDIR /opt/vllm
-RUN python3 -m pip install --break-system-packages --no-cache-dir \
-        setuptools_scm \
-        cmake \
-        ninja \
-        packaging && \
-    python3 -m pip install --break-system-packages --no-cache-dir --no-build-isolation -e . && \
-    rm -rf /opt/vllm/.git /root/.cache/pip && \
-    find /opt/vllm -type d -name __pycache__ -exec rm -rf {} + || true && \
-    find /opt/vllm -type d -name "*.egg-info" -exec rm -rf {} + || true
-
-# ---- sanity flags (runtime selection) ----
-ENV VLLM_ATTENTION_BACKEND=auto \
-    PYTORCH_ENABLE_MPS_FALLBACK=0
-
-# ---- runtime ----
 EXPOSE 8000
+
 ENTRYPOINT ["python3", "-m", "vllm.entrypoints.openai.api_server"]
