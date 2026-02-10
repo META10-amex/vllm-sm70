@@ -5,7 +5,7 @@
 ```bash
 docker pull ghcr.io/jajmangold/vllm-sm70:latest
 ```
-## What is this repo?
+## What's in This Repo?
 
 Docker image for running the latest **vLLM** on older NVIDIA GPUs with **sm_70** compute capability (Volta architecture), including:
 
