@@ -96,7 +96,7 @@ RUN python3 setup.py install && \
     rm -rf /opt/bitsandbytes/.git /root/.cache/pip
 
 # ---- AutoRound (pure Python, no CUDA kernels) ----
-RUN pip install --break-system-packages --no-cache-dir autoround
+RUN pip install --break-system-packages --no-cache-dir auto-round
 
 # ---- build vLLM v0.12.0 ----
 WORKDIR /opt
