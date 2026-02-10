@@ -1,5 +1,12 @@
 # vLLM with sm_70 (Volta) Support — **Prebuilt PyTorch, No Source Builds**
 
+## TLDR
+
+```bash
+docker pull ghcr.io/jajmangold/vllm-sm70:latest
+```
+## What is this repo?
+
 Docker image for running the latest **vLLM** on older NVIDIA GPUs with **sm_70** compute capability (Volta architecture), including:
 
 - Tesla V100  
@@ -40,3 +47,4 @@ Pull the pre-built image from GitHub Container Registry:
 
 ```bash
 docker pull ghcr.io/jajmangold/vllm-sm70:latest
+```
