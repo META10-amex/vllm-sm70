@@ -43,6 +43,8 @@ If you just want new vLLM versions to run on V100 / CMP 100-210 cards, this is t
 
 ## Pre-built Image
 
+The latest version of vLLM is built nightly.
+
 Pull the pre-built image from GitHub Container Registry:
 
 ```bash
