@@ -69,11 +69,13 @@ RUN pip install --break-system-packages --no-cache-dir -e . -v --no-build-isolat
 WORKDIR /opt
 RUN git clone --branch v0.0.28 --depth 1 https://github.com/facebookresearch/xformers.git
 
-WORKDIR /opt/xformers
-ENV XFORMERS_BUILD_TYPE=Release \
-    XFORMERS_ENABLE_FLASH_ATTENTION=0 \
-    XFORMERS_ENABLE_MEM_EFF_ATTENTION=1 \
-    XFORMERS_FORCE_DISABLE_TRITON=0
+# ---- xFormers (build from source for sm_70) ----
+WORKDIR /opt
+RUN git clone --branch v0.0.28 --depth 1 --recursive https://github.com/facebookresearch/xformers.git && \
+    cd xformers && \
+    git submodule sync && \
+    git submodule update --init --recursive --depth 1
+
 
 RUN pip install --break-system-packages --no-cache-dir -e . -v --no-build-isolation && \
     rm -rf /opt/xformers/.git /root/.cache/pip
