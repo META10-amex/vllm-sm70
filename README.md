@@ -1,4 +1,4 @@
-# vLLM with sm_70 (Volta) Support — **Prebuilt PyTorch, No Source Builds**
+# vLLM with sm_70 (Volta) Support
 
 ## TLDR
 
