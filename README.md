@@ -79,7 +79,7 @@ If you just want **new vLLM versions to keep working** on V100 / CMP 100-210 car
 
 ## Pre-built Image
 
-The latest version of vLLM is built **nightly** (and on manual trigger).
+The latest version of vLLM is built **nightly** .
 
 Pull the pre-built image from GitHub Container Registry:
 
