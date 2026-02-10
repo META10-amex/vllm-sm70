@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       vllm_version:
-        description: 'vLLM version to build (e.g. 0.14.1)'
+        description: 'Optional: vLLM version to build (e.g. 0.14.1). Leave empty to build latest.'
         required: false
         default: ''
 
@@ -18,11 +18,14 @@ jobs:
       new_release: ${{ steps.check.outputs.new_release }}
       version: ${{ steps.check.outputs.version }}
     steps:
-      - name: Check for new vLLM release
+      - name: Check for vLLM release to build
         id: check
         run: |
           set -e
 
+          # Resolve version:
+          # - If manual input provided → use it
+          # - Otherwise (cron OR manual empty) → use latest release
           if [ -n "${{ github.event.inputs.vllm_version }}" ]; then
             VERSION="${{ github.event.inputs.vllm_version }}"
           else
@@ -30,14 +33,18 @@ jobs:
             VERSION="${VERSION#v}"
           fi
 
-          echo "Latest vLLM version: $VERSION"
+          echo "Resolved vLLM version: $VERSION"
 
+          # Check if image already exists in GHCR
           EXISTS=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://ghcr.io/v2/jajmangold/vllm-sm70/manifests/${VERSION}")
 
+          # Skip only if:
+          # - image exists
+          # - AND this was not an explicit manual override
           if [ "$EXISTS" = "200" ] && [ -z "${{ github.event.inputs.vllm_version }}" ]; then
-            echo "Image already exists, skipping"
+            echo "Image for vLLM $VERSION already exists, skipping build"
             echo "new_release=false" >> $GITHUB_OUTPUT
           else
             echo "Building vLLM $VERSION"
@@ -54,7 +61,7 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Free disk space
@@ -69,14 +76,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GHCR
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push image
         uses: docker/build-push-action@v5
         with:
           context: .
