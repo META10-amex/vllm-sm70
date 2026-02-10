@@ -1,6 +1,6 @@
 # vLLM with sm_70 (Volta) Support — **Prebuilt PyTorch, No Source Builds**
 
-Docker image for running **vLLM** on older NVIDIA GPUs with **sm_70** compute capability (Volta architecture), including:
+Docker image for running the latest **vLLM** on older NVIDIA GPUs with **sm_70** compute capability (Volta architecture), including:
 
 - Tesla V100  
 - Titan V  
