@@ -36,7 +36,8 @@ RUN pip install --no-cache-dir \
     typing_extensions \
     aiohttp \
     bitsandbytes \
-    auto-round
+    auto-round \
+    "transformers>=5.1.0"
 
 # -------- install vLLM --------
 RUN pip install --no-cache-dir vllm==${VLLM_VERSION}
