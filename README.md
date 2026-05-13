@@ -15,7 +15,7 @@ A Docker image for running the **latest vLLM** on older NVIDIA GPUs with **sm_70
 * Tesla V100
 * Titan V
 * Quadro GV100
-* **NVIDIA CMP 100-210** (mining GPUs)
+* NVIDIA CMP 100-210 (mining GPUs)
 
 This image is built to be **feature-complete for inference on Volta**, not a crippled fallback.
 
@@ -25,7 +25,7 @@ This image is built to be **feature-complete for inference on Volta**, not a cri
 
 Despite running on Volta, this image includes the **modern inference stack** you care about:
 
-* ✅ **xFormers attention** (CUTLASS-backed kernels where applicable)
+* ✅ **Triton attention** 
 * ✅ **PyTorch SDPA** (scaled dot-product attention fallback)
 * ✅ **bitsandbytes (bnb)** for efficient quantized weights
 * ✅ **AutoRound** for W4A16 / low-bit quantization workflows
@@ -38,8 +38,6 @@ What you *don’t* get (hardware limits, not software):
 * ❌ FP8 / Hopper-only kernels
 * ❌ Marlin (Ampere+)
 
-This is the **best possible attention + quantization stack on Volta** without rebuilding PyTorch.
-
 ---
 
 ## Why This Exists
@@ -49,12 +47,9 @@ Newer official vLLM images and recent PyTorch releases increasingly **drop or de
 This project takes the pragmatic route:
 
 * Use a **known-good prebuilt PyTorch image** that still includes `sm_70`
-* Preserve **xFormers + SDPA** attention paths
-* Include **bnb + AutoRound** for modern quantized inference
-* Avoid PyTorch source builds, PEP-517 pain, and toolchain breakage
+* Include **AutoRound** for SOTA modern quantized inference
+* Avoid PyTorch source builds
 * Focus on **running inference on Volta**, not fighting packaging
-
-If you just want **new vLLM versions to keep working** on V100 / CMP 100-210 cards, this is the boring solution that works.
 
 ---
 
@@ -66,7 +61,8 @@ If you just want **new vLLM versions to keep working** on V100 / CMP 100-210 car
 * **PyTorch**: 2.7.1 (prebuilt, includes `sm_70`)
 * **vLLM**: latest (auto-built from upstream releases)
 * **Attention backends**:
-
+  
+  * Triton
   * xFormers
   * PyTorch SDPA
 * **Quantization tooling**:
@@ -79,7 +75,7 @@ If you just want **new vLLM versions to keep working** on V100 / CMP 100-210 car
 
 ## Pre-built Image
 
-The latest version of vLLM is built **nightly** .
+The latest version of vLLM checked **nightly** . Builds happen when upstream releases happen.
 
 Pull the pre-built image from GitHub Container Registry:
 
