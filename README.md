@@ -87,6 +87,6 @@ This tag always tracks:
 
 * the newest upstream vLLM release
 * a Volta-compatible PyTorch base
-* a full inference feature set (xFormers, SDPA, bnb, AutoRound)
+* a full inference feature set ( bnb, AutoRound)
 
 ---
