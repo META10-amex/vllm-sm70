@@ -1,33 +1,16 @@
 # vLLM with sm_70 (Volta) Support
 
+> ⚠️ **This project is archived and no longer maintained.**
+> For Volta (SM70) vLLM — including Qwen3.5 / Qwen3.6 — use
+> **[1CatAI/1Cat-vLLM](https://github.com/1CatAI/1Cat-vLLM)** instead: a more
+> complete V100 fork with a native `FLASH_ATTN_V100` kernel, AWQ support, and
+> validated multi-GPU Qwen3.5 deployments.
+
 ## TL;DR
 
 ```bash
 docker pull ghcr.io/jajmangold/vllm-sm70:latest
 ````
-
----
-
-## 👉 Looking for a more complete V100 stack? Use 1Cat-vLLM
-
-For serious Volta serving — especially **Qwen3.5 / Qwen3.6** — consider
-**[1CatAI/1Cat-vLLM](https://github.com/1CatAI/1Cat-vLLM)** instead. It's a
-full vLLM fork purpose-built for SM70 with capabilities this image does **not**
-have:
-
-* A real **`FLASH_ATTN_V100`** attention kernel (TurboMind-derived SM70 WMMA),
-  not just the Triton/SDPA fallback — enable with `--attention-backend FLASH_ATTN_V100`.
-* **AWQ 4-bit** paths validated for dense and MoE Qwen models on V100.
-* Validated multi-GPU **Qwen3.5 27B / 35B / 122B** (TP2/TP4) deployments.
-* Distributed as prebuilt **wheels** (`vllm` + `flash_attn_v100`) on torch 2.9.1+cu128.
-
-This repo remains a simple "build latest vLLM for sm_70" Docker image; 1Cat-vLLM
-is the better choice if you need the V100 FlashAttention path or large/long-context
-Qwen models.
-
-> Note on newer vLLM + Volta: vLLM 0.20.x pins torch 2.11.0, which dropped Volta
-> from its cu128/cu130 wheels — only the **cu126** build keeps sm_70. This image's
-> Dockerfile is based on the cuda12.6 PyTorch image for that reason.
 
 ---
 
