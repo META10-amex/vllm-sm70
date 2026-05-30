@@ -7,7 +7,12 @@
 # an image that dies on V100 at CUDA init with "no kernel image is available for
 # execution on the device" (torch's own kernels lack sm_70), even though vLLM's
 # kernels were compiled for 7.0. So we base on the cuda12.6 PyTorch image.
-ARG PYTORCH_IMAGE=pytorch/pytorch:2.11.0-cuda12.6-cudnn9-devel
+# Pinned by digest: the :2.11.0-cuda12.6-cudnn9-devel tag is mutable and has
+# served different images to different pullers (Python 3.12 non-conda vs an older
+# Python 3.11 conda build) — the conda variant doesn't propagate CUDA_HOME to the
+# build env and fails with "CUDA_HOME is not set". This digest is the Python 3.12
+# build verified to include sm_70 and set CUDA_HOME=/usr/local/cuda.
+ARG PYTORCH_IMAGE=pytorch/pytorch:2.11.0-cuda12.6-cudnn9-devel@sha256:46e4c2def3ea95fd217922c68838ee0e6610892676c5d78a19b217c8e6adc7f9
 FROM ${PYTORCH_IMAGE}
 
 ARG VLLM_VERSION=0.20.2
@@ -15,6 +20,7 @@ ARG MAX_JOBS=8
 ARG NVCC_THREADS=2
 
 ENV DEBIAN_FRONTEND=noninteractive \
+    CUDA_HOME=/usr/local/cuda \
     TORCH_CUDA_ARCH_LIST="7.0" \
     CMAKE_CUDA_ARCHITECTURES=70 \
     CUDAARCHS=70 \
@@ -69,9 +75,12 @@ RUN pip install --no-cache-dir -c /opt/vllm/constraints.txt bitsandbytes auto-ro
 #    absent. Don't raise: the symbols stay importable (FA2/FA3_AVAILABLE=False)
 #    and vLLM selects a non-FlashAttention (Triton) backend at runtime.
 RUN python3 - <<'PY'
-import glob
+import importlib.util, os
 from pathlib import Path
-p = Path(glob.glob("/usr/local/lib/python3*/dist-packages/vllm/vllm_flash_attn/__init__.py")[0])
+# Locate the installed vllm package without importing it (import needs libcuda,
+# absent at build time). Works regardless of install layout (dist-packages/conda).
+vllm_dir = os.path.dirname(importlib.util.find_spec("vllm").origin)
+p = Path(vllm_dir) / "vllm_flash_attn" / "__init__.py"
 t = p.read_text()
 old = (
     "if not (FA2_AVAILABLE or FA3_AVAILABLE):\n"
@@ -97,9 +106,10 @@ PY
 #    Fall back to the pure-torch forward_native when that import is missing
 #    (used by Qwen3.5's vision tower; harmless elsewhere on Volta).
 RUN python3 - <<'PY'
-import glob
+import importlib.util, os
 from pathlib import Path
-p = Path(glob.glob("/usr/local/lib/python3*/dist-packages/vllm/model_executor/layers/rotary_embedding/common.py")[0])
+vllm_dir = os.path.dirname(importlib.util.find_spec("vllm").origin)
+p = Path(vllm_dir) / "model_executor" / "layers" / "rotary_embedding" / "common.py"
 t = p.read_text()
 old = "        from vllm.vllm_flash_attn.layers.rotary import apply_rotary_emb\n"
 new = (
